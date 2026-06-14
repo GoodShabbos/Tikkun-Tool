@@ -137,6 +137,20 @@ ol {
   --pull-translation: 0;
 }
 
+/* Sefer Torah mode: horizontal scroll */
+.tikkun-book.mod-sefer-torah {
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow-y: hidden;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: row; /* RTL direction handles the visual order */
+  align-items: stretch;
+  gap: 0;
+  direction: rtl; /* RTL: first item on the right, scroll origin at right */
+}
+
 .tikkun-book.mod-pull-releasing {
   --pull-transform: 0.15s;
 }

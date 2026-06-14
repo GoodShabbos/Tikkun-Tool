@@ -1,12 +1,21 @@
 import type { RenderedLineInfo } from '../view-model/scroll-view-model.ts'
 import displayRange from '../display-range.ts'
 import textFilter from '../text-filter.ts'
+import wordPairs from '../word-pairs.ts'
 
 const ktivKriAnnotation = (text: string) =>
   text
     .replace(/[{]/g, `<span class="ktiv-kri">`)
     .replace(/[}]/g, `</span>`)
     .trim()
+
+const wordPeekSpans = (rawFragment: string) =>
+  wordPairs(rawFragment)
+    .map(
+      ({ plain, annotated }) =>
+        `<span class="word-peek" data-annotated="${annotated}">${plain}</span>`
+    )
+    .join(' ')
 
 const petuchaClass = (isPetucha: boolean) => (isPetucha ? 'mod-petucha' : '')
 const setumaClass = (column: unknown[]) =>
@@ -55,9 +64,7 @@ const Line = ({
                 (fragment) => `
               <span class="fragment ${setumaClass(
                 column
-              )}">${ktivKriAnnotation(
-                  textFilter({ text: fragment, annotated: false })
-                )}</span>
+              )}">${wordPeekSpans(fragment)}</span>
             `
               )
               .join('')}

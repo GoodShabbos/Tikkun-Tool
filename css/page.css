@@ -184,8 +184,94 @@
   padding-right: 0;
 }
 
+/* Word peek: click a plain word to temporarily reveal its annotated form */
+.tikkun-book.mod-single-column.mod-annotations-off .word-peek {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.tikkun-book.mod-single-column.mod-annotations-off .word-peek:hover {
+  background-color: var(--light-accent-color);
+}
+
+.tikkun-book.mod-single-column.mod-annotations-off .word-peek.mod-peeking {
+  background-color: var(--medium-accent-color);
+}
+
+/* In other modes, word-peek spans are not interactive */
+.word-peek {
+  /* no-op: just a span */
+}
+
 .fragment.mod-setuma {
   width: auto;
+}
+
+/* ===== Sefer Torah mode ===== */
+
+/* Each page becomes a flex item in the horizontal scroll container.
+   Pages are ~42% wide so 2-3 columns are visible at once,
+   like viewing an open Sefer Torah with neighboring columns visible. */
+.tikkun-book.mod-sefer-torah .tikkun-page {
+  flex-shrink: 0;
+  width: 42%;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1em 0;
+  border-left: 2px solid var(--heavy-accent-color);
+}
+
+/* Override vertical spacing rules for horizontal layout */
+.tikkun-book.mod-sefer-torah .tikkun-page:not(:first-child) {
+  padding-top: 1em;
+  border-bottom: none;
+}
+
+.tikkun-book.mod-sefer-torah .tikkun-page:not(:last-child) {
+  padding-bottom: 1em;
+  border-bottom: none;
+}
+
+/* Single column: hide annotated, show plain */
+.tikkun-book.mod-sefer-torah .tikkun-columns {
+  gap: 0;
+}
+
+.tikkun-book.mod-sefer-torah .tikkun-column.mod-annotated {
+  display: none;
+}
+
+.tikkun-book.mod-sefer-torah .tikkun-column.mod-plain {
+  border-right: none;
+  padding-right: 0;
+  font-size: clamp(0.7em, 2.8vw, 1.4em);
+}
+
+/* Word peek works in Sefer Torah mode (annotations are always off) */
+.tikkun-book.mod-sefer-torah .word-peek {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.tikkun-book.mod-sefer-torah .word-peek:hover {
+  background-color: var(--light-accent-color);
+}
+
+.tikkun-book.mod-sefer-torah .word-peek.mod-peeking {
+  background-color: var(--medium-accent-color);
+}
+
+/* Hide location indicators in Sefer Torah mode */
+.tikkun-book.mod-sefer-torah .location-indicator {
+  display: none;
+}
+
+/* Hide download button in Sefer Torah mode */
+.tikkun-book.mod-sefer-torah .download-amud-btn {
+  display: none;
 }
 
 .fragment:after {

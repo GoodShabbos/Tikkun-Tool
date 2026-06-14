@@ -264,14 +264,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const COLUMN_MODE_KEY = 'tikkun-column-mode'
   const ANNOTATIONS_KEY = 'tikkun-annotations-on'
 
-  const applyColumnMode = (mode: 'single' | 'double') => {
+  const applyColumnMode = (mode: 'single' | 'double' | 'sefer') => {
     const book = document.querySelector<HTMLElement>('[data-target-id="tikkun-book"]')!
     book.classList.toggle('mod-single-column', mode === 'single')
     book.classList.toggle('mod-double-column', mode === 'double')
+    book.classList.toggle('mod-sefer-torah', mode === 'sefer')
 
     // Show/hide the annotation toggle based on column mode
     // In double-column mode, both columns are always visible so toggle is hidden
     // In single-column mode, toggle switches which column is shown
+    // In sefer-torah mode, annotations are always off so toggle is hidden
     if (mode === 'single') {
       toggleWrapper.style.display = ''
       toggleWrapper.classList.remove('u-hidden', 'mod-animated')
@@ -279,8 +281,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       toggleWrapper.style.display = 'none'
     }
 
+    // In sefer mode, force annotations off
+    if (mode === 'sefer') {
+      annotationsToggle.checked = false
+      localStorage.setItem(ANNOTATIONS_KEY, 'false')
+    }
+
     // Apply annotation state
     applyAnnotationState(annotationsToggle.checked)
+
+    // In Sefer Torah mode, pre-load enough pages to create horizontal overflow
+    // so the infinite scroller can work. Pages are ~42% wide, so we need
+    // at least 3 pages to overflow the viewport.
+    if (mode === 'sefer' && display) {
+      const loadSeferPages = async () => {
+        const viewModel = display.viewModel
+        // Load pages on both sides until we have enough for overflow
+        for (let i = 0; i < 3; i++) {
+          const prev = await viewModel.fetchPreviousPage()
+          if (prev) display.renderPrevious(prev)
+          const next = await viewModel.fetchNextPage()
+          if (next) display.renderNext(next)
+        }
+        // Dispatch a scroll event to kick the infinite scroller
+        book.dispatchEvent(new Event('scroll'))
+      }
+      loadSeferPages()
+    }
   }
 
   const applyAnnotationState = (annotationsOn: boolean) => {
@@ -290,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Initialize from localStorage or defaults
-  const savedColumnMode = (localStorage.getItem(COLUMN_MODE_KEY) as 'single' | 'double') || 'double'
+  const savedColumnMode = (localStorage.getItem(COLUMN_MODE_KEY) as 'single' | 'double' | 'sefer') || 'double'
   const savedAnnotations = localStorage.getItem(ANNOTATIONS_KEY) !== 'false' // default true
 
   columnModeSelect.value = savedColumnMode
@@ -299,7 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyColumnMode(savedColumnMode)
 
   columnModeSelect.addEventListener('change', () => {
-    const mode = columnModeSelect.value as 'single' | 'double'
+    const mode = columnModeSelect.value as 'single' | 'double' | 'sefer'
     localStorage.setItem(COLUMN_MODE_KEY, mode)
     applyColumnMode(mode)
   })
@@ -324,6 +351,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     'keyup',
     whenKey('Shift', () => toggleAnnotations(() => annotationsToggle.checked))
   )
+
+  // --- Word peek: click a word in single-column + annotations-off to reveal its annotated form ---
+  let peekingWord: HTMLSpanElement | null = null
+  let peekTimeout: ReturnType<typeof setTimeout> | null = null
+
+  const revertPeek = () => {
+    if (!peekingWord) return
+    const plain = peekingWord.textContent
+    const annotated = peekingWord.dataset.annotated
+    if (plain && annotated) {
+      peekingWord.textContent = annotated
+      peekingWord.dataset.annotated = plain
+    }
+    peekingWord.classList.remove('mod-peeking')
+    peekingWord = null
+    if (peekTimeout) {
+      clearTimeout(peekTimeout)
+      peekTimeout = null
+    }
+  }
+
+  const peekWord = (span: HTMLSpanElement) => {
+    // Revert any currently peeking word
+    if (peekingWord && peekingWord !== span) {
+      revertPeek()
+    }
+
+    // Toggle: if already peeking, revert
+    if (span.classList.contains('mod-peeking')) {
+      revertPeek()
+      return
+    }
+
+    // Swap plain ↔ annotated
+    const plain = span.textContent
+    const annotated = span.dataset.annotated
+    if (plain && annotated) {
+      span.textContent = annotated
+      span.dataset.annotated = plain
+    }
+    span.classList.add('mod-peeking')
+    peekingWord = span
+
+    // Auto-revert after 2 seconds
+    peekTimeout = setTimeout(revertPeek, 2000)
+  }
+
+  book.addEventListener('click', (e) => {
+    // Only activate in single-column + annotations-off, or sefer-torah mode
+    const isSinglePeek = book.classList.contains('mod-single-column') && book.classList.contains('mod-annotations-off')
+    const isSeferPeek = book.classList.contains('mod-sefer-torah')
+    if (!isSinglePeek && !isSeferPeek) return
+
+    const target = e.target as HTMLElement
+    const wordSpan = target.closest<HTMLSpanElement>('.word-peek')
+    if (wordSpan) {
+      e.preventDefault()
+      peekWord(wordSpan)
+    }
+  })
+
+  // Escape key also reverts peeking word
+  document.addEventListener('keydown', whenKey('Escape', () => {
+    if (peekingWord) revertPeek()
+  }))
 
   document
     .querySelector('[data-target-id="parsha-title"]')
