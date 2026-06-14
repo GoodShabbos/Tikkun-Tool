@@ -21,7 +21,7 @@ let vm: ScrollViewModel
 
 beforeEach(() => {
   root = document.createElement('div')
-  root.className = 'tikkun-book mod-annotations-off'
+  root.className = 'tikkun-book'
   document.body.appendChild(root)
 })
 afterEach(() => {
@@ -135,7 +135,7 @@ function getAliyahLabel(lineEl: HTMLTableRowElement) {
 }
 
 function textFromLine(lineEl: HTMLTableRowElement) {
-  return [...lineEl.querySelectorAll('.mod-annotations-off')]
+  return [...lineEl.querySelectorAll('.tikkun-column.mod-plain .fragment')]
     .map((e) => e.textContent)
     .join('\t')
 }

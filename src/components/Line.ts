@@ -23,30 +23,50 @@ const Line = ({
 } & RenderedLineInfo) => `
   <tr data-class="line" data-line-index="${lineIndex}">
     <td class="line ${petuchaClass(isPetucha)}">
-      ${text
-        .map(
-          (column) => `
-        <div class="column">
-          ${column
+      <div class="tikkun-columns">
+        <div class="tikkun-column mod-annotated">
+          ${text
             .map(
-              (fragment) => `
-            <span class="fragment ${setumaClass(
-              column
-            )} mod-annotations-on">${ktivKriAnnotation(
-                textFilter({ text: fragment, annotated: true })
-              )}</span>
-            <span class="fragment ${setumaClass(
-              column
-            )} mod-annotations-off">${ktivKriAnnotation(
-                textFilter({ text: fragment, annotated: false })
-              )}</span>
-          `
+              (column) => `
+          <div class="column">
+            ${column
+              .map(
+                (fragment) => `
+              <span class="fragment ${setumaClass(
+                column
+              )}">${ktivKriAnnotation(
+                  textFilter({ text: fragment, annotated: true })
+                )}</span>
+            `
+              )
+              .join('')}
+          </div>
+        `
             )
             .join('')}
         </div>
-      `
-        )
-        .join('')}
+        <div class="tikkun-column mod-plain">
+          ${text
+            .map(
+              (column) => `
+          <div class="column">
+            ${column
+              .map(
+                (fragment) => `
+              <span class="fragment ${setumaClass(
+                column
+              )}">${ktivKriAnnotation(
+                  textFilter({ text: fragment, annotated: false })
+                )}</span>
+            `
+              )
+              .join('')}
+          </div>
+        `
+            )
+            .join('')}
+        </div>
+      </div>
       <span class="location-indicator mod-verses">${displayRange.asVersesRange(
         verses
       )}</span>

@@ -8,6 +8,7 @@ import { ScrollDisplay } from './components/ScrollDisplay.ts'
 import { ViewportTracker } from './viewport-tracker.ts'
 import { TopBarTracker } from './view-model/navigation/top-bar-model.ts'
 import { parseUrl } from './view-model/navigation/url-parser.ts'
+import { setupDownloadButtons } from './components/download-amud.ts'
 
 declare function gtag(
   name: 'event',
@@ -53,9 +54,9 @@ const setVisibility = ({
 
 const showParshaPicker = () => {
   ;[
-    { selector: '[data-test-id="annotations-toggle"]', visible: false },
     { selector: '[data-target-id="repo-link"]', visible: false },
     { selector: '[data-target-id="tikkun-book"]', visible: false },
+    { selector: '[data-target-id="toggle-wrapper"]', visible: false },
   ].forEach(({ selector, visible }) => setVisibility({ selector, visible }))
 
   const jumper = ParshaPicker(generator)
@@ -71,10 +72,15 @@ const showParshaPicker = () => {
 
 const hideParshaPicker = () => {
   ;[
-    { selector: '[data-test-id="annotations-toggle"]', visible: true },
     { selector: '[data-target-id="repo-link"]', visible: true },
     { selector: '[data-target-id="tikkun-book"]', visible: true },
   ].forEach(({ selector, visible }) => setVisibility({ selector, visible }))
+
+  // Only show the toggle wrapper if in single-column mode
+  const columnMode = document.querySelector<HTMLSelectElement>('[data-target-id="column-mode"]')?.value
+  if (columnMode === 'single') {
+    setVisibility({ selector: '[data-target-id="toggle-wrapper"]', visible: true })
+  }
 
   if (document.querySelector('.parsha-picker'))
     document
@@ -91,19 +97,6 @@ const toggleParshaPicker = () => {
   } else {
     showParshaPicker()
   }
-}
-
-const toggleAnnotations = (getPreviousCheckedState: () => boolean) => {
-  const toggle = document.querySelector<HTMLInputElement>(
-    '[data-target-id="annotations-toggle"]'
-  )
-
-  toggle.checked = !getPreviousCheckedState()
-
-  const book = document.querySelector('[data-target-id=tikkun-book]')
-
-  book.classList.toggle('mod-annotations-on', toggle.checked)
-  book.classList.toggle('mod-annotations-off', !toggle.checked)
 }
 
 const scrollState: { lastScrolledPosition: number; pageAtTop: HTMLElement } = {
@@ -135,7 +128,7 @@ const rememberLastScrolledPosition = () => {
       topOfBookRelativeToViewport.x,
       topOfBookRelativeToViewport.y
     ) as HTMLElement[]),
-  ].find((el) => el.className.includes('tikkun-page'))
+  ].find((el) => typeof el.className === 'string' && el.className.includes('tikkun-page'))
 
   if (!pageAtTop) return
 
@@ -206,9 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     '[data-target-id="tikkun-book"]'
   )!
 
-  const toggle = document.querySelector<HTMLInputElement>(
-    '[data-target-id="annotations-toggle"]'
-  )!
+  setupDownloadButtons(book)
 
   const viewportTracker = new ViewportTracker(book)
   const topBarModel = new TopBarTracker()
@@ -228,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   book.addEventListener('mouseover', (e) => {
     const line = document
       .elementsFromPoint(e.x, e.y)
-      .find((e) => e.className.includes('line'))
+      .find((e) => typeof e.className === 'string' && e.className.includes('line'))
     console.log(line)
   })
 
@@ -259,17 +250,79 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // watchForHighlighting()
 
-  toggle.addEventListener('change', () =>
-    toggleAnnotations(() => !toggle.checked)
-  )
+  // --- Column mode dropdown ---
+  const columnModeSelect = document.querySelector<HTMLSelectElement>(
+    '[data-target-id="column-mode"]'
+  )!
+  const toggleWrapper = document.querySelector<HTMLElement>(
+    '[data-target-id="toggle-wrapper"]'
+  )!
+  const annotationsToggle = document.querySelector<HTMLInputElement>(
+    '[data-target-id="annotations-toggle"]'
+  )!
+
+  const COLUMN_MODE_KEY = 'tikkun-column-mode'
+  const ANNOTATIONS_KEY = 'tikkun-annotations-on'
+
+  const applyColumnMode = (mode: 'single' | 'double') => {
+    const book = document.querySelector<HTMLElement>('[data-target-id="tikkun-book"]')!
+    book.classList.toggle('mod-single-column', mode === 'single')
+    book.classList.toggle('mod-double-column', mode === 'double')
+
+    // Show/hide the annotation toggle based on column mode
+    // In double-column mode, both columns are always visible so toggle is hidden
+    // In single-column mode, toggle switches which column is shown
+    if (mode === 'single') {
+      toggleWrapper.style.display = ''
+      toggleWrapper.classList.remove('u-hidden', 'mod-animated')
+    } else {
+      toggleWrapper.style.display = 'none'
+    }
+
+    // Apply annotation state
+    applyAnnotationState(annotationsToggle.checked)
+  }
+
+  const applyAnnotationState = (annotationsOn: boolean) => {
+    const book = document.querySelector<HTMLElement>('[data-target-id="tikkun-book"]')!
+    book.classList.toggle('mod-annotations-on', annotationsOn)
+    book.classList.toggle('mod-annotations-off', !annotationsOn)
+  }
+
+  // Initialize from localStorage or defaults
+  const savedColumnMode = (localStorage.getItem(COLUMN_MODE_KEY) as 'single' | 'double') || 'double'
+  const savedAnnotations = localStorage.getItem(ANNOTATIONS_KEY) !== 'false' // default true
+
+  columnModeSelect.value = savedColumnMode
+  annotationsToggle.checked = savedAnnotations
+
+  applyColumnMode(savedColumnMode)
+
+  columnModeSelect.addEventListener('change', () => {
+    const mode = columnModeSelect.value as 'single' | 'double'
+    localStorage.setItem(COLUMN_MODE_KEY, mode)
+    applyColumnMode(mode)
+  })
+
+  // --- Annotations toggle ---
+  const toggleAnnotations = (getPreviousCheckedState: () => boolean) => {
+    annotationsToggle.checked = !getPreviousCheckedState()
+    localStorage.setItem(ANNOTATIONS_KEY, String(annotationsToggle.checked))
+    applyAnnotationState(annotationsToggle.checked)
+  }
+
+  annotationsToggle.addEventListener('change', () => {
+    localStorage.setItem(ANNOTATIONS_KEY, String(annotationsToggle.checked))
+    applyAnnotationState(annotationsToggle.checked)
+  })
 
   document.addEventListener(
     'keydown',
-    whenKey('Shift', () => toggleAnnotations(() => toggle.checked))
+    whenKey('Shift', () => toggleAnnotations(() => annotationsToggle.checked))
   )
   document.addEventListener(
     'keyup',
-    whenKey('Shift', () => toggleAnnotations(() => toggle.checked))
+    whenKey('Shift', () => toggleAnnotations(() => annotationsToggle.checked))
   )
 
   document

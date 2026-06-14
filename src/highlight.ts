@@ -98,7 +98,7 @@ export const watchForHighlighting = () =>
     const isStartAndEndSameNode = selectedLines.length === 1
 
     const fragmentOf = (line: HTMLElement) =>
-      line.querySelector('.fragment.mod-annotations-on')
+      line.querySelector('.tikkun-column.mod-annotated .fragment')
 
     const textContentOf = (line: HTMLElement) => fragmentOf(line).textContent
 

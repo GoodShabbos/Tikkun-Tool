@@ -128,7 +128,7 @@ async function scrollRootBy(deltaY: number) {
 
 function createRoot() {
   root = document.createElement('div')
-  root.className = 'tikkun-book mod-annotations-off'
+  root.className = 'tikkun-book'
   document.body.appendChild(root)
 }
 

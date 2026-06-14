@@ -29,6 +29,7 @@
     "typecheck": "tsc",
     "checks": "npm run lint && npm run typecheck",
     "deploy": "npm run clean && npm run checks && npm run build && cp -R static/ dist && echo 'tikkun.io\nwww.tikkun.io' > dist/CNAME && gh-pages -d dist",
+    "deploy:render": "npm run clean && npm run build && cp -R static/. dist/",
     "test:browser": "vitest --workspace=vitest.workspace.ts"
   },
   "repository": {
@@ -45,6 +46,7 @@
     "@hebcal/core": "^5.7.7",
     "@hebcal/hdate": "^0.12.0",
     "@hebcal/leyning": "^9.0.1",
+    "jspdf": "^4.2.1",
     "normalize.css": "^8.0.1"
   },
   "devDependencies": {

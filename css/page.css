@@ -3,6 +3,46 @@
   justify-content: center;
   font-family: Shlomosemistam;
   color: var(--page-ink-color);
+  position: relative;
+}
+
+.download-amud-btn {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-color, white);
+  border: 1px solid var(--medium-accent-color, #ccc);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--verses-color, #999);
+  font-size: 0.7em;
+  font-family: sans-serif;
+  transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  gap: 4px;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tikkun-page:hover .download-amud-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.download-amud-btn:hover {
+  background-color: var(--medium-accent-color, #eee);
+  color: var(--page-ink-color, #333);
+  border-color: var(--page-ink-color, #333);
+}
+
+.download-amud-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .tikkun-page table {
@@ -88,9 +128,60 @@
   width: 100%;
 }
 
-.tikkun-book.mod-annotations-off .fragment.mod-annotations-on,
-.tikkun-book.mod-annotations-on .fragment.mod-annotations-off {
+.tikkun-columns {
+  display: flex;
+  gap: 1em;
+  width: 100%;
+}
+
+.tikkun-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  /* Scale font size with viewport so text doesn't wrap more than needed.
+     Each column is roughly half the viewport width.
+     Using a fluid scale that keeps text proportional to column width. */
+  font-size: clamp(0.45em, 1.8vw, 1em);
+}
+
+.tikkun-column.mod-annotated {
+  border-left: 1px solid var(--heavy-accent-color);
+  padding-left: 0.5em;
+}
+
+.tikkun-column.mod-plain {
+  border-right: 1px solid var(--heavy-accent-color);
+  padding-right: 0.5em;
+}
+
+/* Single column mode: hide one column based on annotation toggle */
+.tikkun-book.mod-single-column .tikkun-columns {
+  gap: 0;
+}
+
+.tikkun-book.mod-single-column .tikkun-column {
+  font-size: clamp(0.55em, 2.2vw, 1.2em);
+}
+
+/* When annotations are ON (checked), show annotated column, hide plain */
+.tikkun-book.mod-single-column.mod-annotations-on .tikkun-column.mod-plain {
   display: none;
+}
+
+.tikkun-book.mod-single-column.mod-annotations-on .tikkun-column.mod-annotated {
+  border-left: none;
+  padding-left: 0;
+}
+
+/* When annotations are OFF (unchecked), show plain column, hide annotated */
+.tikkun-book.mod-single-column.mod-annotations-off .tikkun-column.mod-annotated {
+  display: none;
+}
+
+.tikkun-book.mod-single-column.mod-annotations-off .tikkun-column.mod-plain {
+  border-right: none;
+  padding-right: 0;
 }
 
 .fragment.mod-setuma {
@@ -114,9 +205,7 @@
   user-drag: none;
 }
 
-.tikkun-book.mod-annotations-off .location-indicator {
-  display: none;
-}
+
 
 .location-indicator.mod-verses {
   right: -6ch;

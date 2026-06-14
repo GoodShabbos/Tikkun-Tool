@@ -1,0 +1,6 @@
+services:
+  - type: static
+    name: tikkun-io
+    buildCommand: npm run build && cp -R static/. dist/
+    publishDir: dist
+    pullRequestPreviewsEnabled: true

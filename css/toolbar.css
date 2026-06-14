@@ -41,6 +41,43 @@
   background-color: var(--heavy-accent-color);
 }
 
+.column-mode-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--light-accent-color);
+  color: var(--text-color);
+  border: 1px solid var(--medium-accent-color);
+  border-radius: var(--button-border-radius);
+  padding: 0.35em 1.8em 0.35em 0.7em;
+  font-size: 0.8em;
+  font-family: -apple-system, sans-serif;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23777'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6em center;
+  background-size: 10px;
+  direction: ltr;
+}
+
+.column-mode-select:hover {
+  background-color: var(--medium-accent-color);
+}
+
+.column-mode-select:active {
+  background-color: var(--heavy-accent-color);
+}
+
+.column-mode-select:focus {
+  outline: 2px solid var(--medium-accent-color);
+  outline-offset: 1px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .column-mode-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  }
+}
+
 .toolbar-github {
   vertical-align: middle; /* HACK: https://stackoverflow.com/a/27999850/2374361 */
 }

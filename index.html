@@ -49,7 +49,12 @@
     <header class="app-toolbar">
       <div class="toolbar-content u-page-wrap">
         <div class="toolbar-wrapper mod-left">
-          <div class="toolbar-item"></div>
+          <div class="toolbar-item">
+            <select class="column-mode-select" data-target-id="column-mode" title="Column layout">
+              <option value="double" selected>Double Column</option>
+              <option value="single">Single Column</option>
+            </select>
+          </div>
         </div>
         <div class="toolbar-wrapper mod-center">
           <div class="toolbar-item">
@@ -69,10 +74,11 @@
       </div>
     </header>
     <div id="js-app" class="app-body" style="direction: rtl">
-      <div class="tikkun-book mod-annotations-on" data-target-id="tikkun-book"></div>
+      <div class="tikkun-book" data-target-id="tikkun-book"></div>
       <div class="" data-target-id="parsha-picker"></div>
     </div>
-    <div style="position: fixed; bottom: 1.5em; right: 1.5em">
+
+    <div style="position: fixed; bottom: 1.5em; right: 1.5em" data-target-id="toggle-wrapper">
       <button class="annotations-toggle" data-test-id="annotations-toggle"
         data-tooltip='Tip: Hold "Shift" to toggle quickly' data-tooltip-position="top-left">
         <label class="toggle">
@@ -84,6 +90,7 @@
         </label>
       </button>
     </div>
+
     <div id="debug" class="u-hidden">
     </div>
   </div>
