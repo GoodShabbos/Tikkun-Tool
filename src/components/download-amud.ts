@@ -124,65 +124,59 @@ function cssColorToHex(color: string): string {
 /**
  * Render a single line of Torah text into the PDF.
  * Each line has columns (outer array) containing fragments (inner array).
- * Columns are laid out with space-between justification, like the site.
- * For petucha lines, text is left-aligned (not justified).
+ * Fragments within a line are distributed with space-between justification,
+ * matching the site's layout. For petucha lines, text is right-aligned.
+ *
+ * All coordinates use LTR: x increases left-to-right.
+ * Hebrew text is rendered right-aligned within each column.
  */
 function renderLine(
   pdf: jsPDF,
   line: LineData,
-  x: number,
+  leftX: number,
   y: number,
-  width: number,
+  colWidth: number,
   fontSize: number,
   annotated: boolean
 ): number {
   const lineHeight = fontSize * 1.15
+  const rightX = leftX + colWidth // right edge of the column
 
-  // Process each column in the line
-  // text[][] — outer array = columns, inner array = fragments within each column
-  const columns = line.text.map((colFragments) =>
-    colFragments.map((fragment) =>
-      annotated
+  // Process fragments: flatten all columns/fragments into a single list
+  const fragments: { text: string; width: number }[] = []
+  for (const colFragments of line.text) {
+    for (const fragment of colFragments) {
+      const processed = annotated
         ? textFilter({ text: fragment, annotated: true }).replace(/\{[^}]*\}/g, '')
         : textFilter({ text: fragment, annotated: false })
-    )
-  )
-
-  // Calculate total text width for all fragments to determine spacing
-  const allFragmentWidths: { colIdx: number; fragIdx: number; text: string; width: number }[] = []
-  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-    for (let fragIdx = 0; fragIdx < columns[colIdx].length; fragIdx++) {
-      const text = columns[colIdx][fragIdx]
-      const w = pdf.getTextWidth(text)
-      allFragmentWidths.push({ colIdx, fragIdx, text, width: w })
+      fragments.push({ text: processed, width: pdf.getTextWidth(processed) })
     }
   }
 
-  const totalTextWidth = allFragmentWidths.reduce((sum, f) => sum + f.width, 0)
-  const totalFragments = allFragmentWidths.length
+  if (fragments.length === 0) return lineHeight
 
-  if (totalFragments === 0) return lineHeight
+  const totalTextWidth = fragments.reduce((sum, f) => sum + f.width, 0)
 
-  // For petucha: left-align (start from the right side in RTL)
-  // For regular lines: justify with space-between
-  if (line.isPetucha || totalFragments === 1) {
-    // Left-aligned (RTL: start from right edge)
-    const fullText = allFragmentWidths.map((f) => f.text).join(' ')
-    pdf.text(fullText, x + width, y, { align: 'right', isInputRtl: true })
+  // For petucha or single-fragment lines: right-align the full text
+  if (line.isPetucha || fragments.length === 1) {
+    const fullText = fragments.map((f) => f.text).join(' ')
+    // Place text so its right edge aligns with the column's right edge
+    // Use align:'left' and calculate x position manually for reliability
+    const textX = rightX - pdf.getTextWidth(fullText)
+    pdf.text(fullText, textX, y)
     return lineHeight
   }
 
-  // Justified layout: distribute fragments across the width
-  // In RTL, x is the left edge and x+width is the right edge
-  // Fragments are placed from right to left
-  const gap = totalFragments > 1 ? (width - totalTextWidth) / (totalFragments - 1) : 0
+  // Justified layout: distribute fragments across the column width
+  // Place fragments from right to left (RTL reading order)
+  const gap = (colWidth - totalTextWidth) / (fragments.length - 1)
 
-  // Place fragments from right to left (RTL)
-  let currentX = x + width // start from right edge
-  for (let i = 0; i < allFragmentWidths.length; i++) {
-    const frag = allFragmentWidths[i]
-    // Right-align each fragment at currentX, then move left
-    pdf.text(frag.text, currentX, y, { align: 'right', isInputRtl: true })
+  let currentX = rightX // start from right edge
+  for (let i = 0; i < fragments.length; i++) {
+    const frag = fragments[i]
+    // Place fragment so its right edge is at currentX
+    const fragX = currentX - frag.width
+    pdf.text(frag.text, fragX, y)
     currentX -= frag.width + gap
   }
 
@@ -227,10 +221,37 @@ async function generateAndDownloadPDF(pageData: unknown, pageEl: HTMLElement) {
   const dividerGap = 12
   const columnWidth = (contentWidth - dividerGap) / 2
 
-  const fontSize = 14
-  const lineHeight = fontSize * 1.15
+  // Determine the best font size: start with a size and shrink if the
+  // widest line doesn't fit in the column width
+  let fontSize = 14
+  const lineHeightMultiplier = 1.15
 
   pdf.setFontSize(fontSize)
+
+  // Check if the widest line fits; if not, reduce font size
+  const maxLineIterations = 10
+  for (let iter = 0; iter < maxLineIterations; iter++) {
+    let maxWidth = 0
+    for (const line of data.lines) {
+      for (const colFragments of line.text) {
+        const lineText = colFragments
+          .map((f) => {
+            const processed = textFilter({ text: f, annotated: true }).replace(/\{[^}]*\}/g, '')
+            return processed
+          })
+          .join(' ')
+        const w = pdf.getTextWidth(lineText)
+        if (w > maxWidth) maxWidth = w
+      }
+    }
+    // The widest single-column text should fit within the column width
+    // with some margin for the justified layout
+    if (maxWidth <= columnWidth * 1.05) break
+    fontSize -= 0.5
+    pdf.setFontSize(fontSize)
+  }
+
+  const lineHeight = fontSize * lineHeightMultiplier
 
   // Set text color
   const inkColorRaw = getComputedStyle(document.documentElement)
@@ -255,9 +276,9 @@ async function generateAndDownloadPDF(pageData: unknown, pageEl: HTMLElement) {
     pdf.line(dividerX, margin, dividerX, pageHeight - margin)
 
     // Column positions (RTL layout):
-    // Annotated column on the RIGHT, plain column on the LEFT
-    const annotatedLeft = margin + columnWidth + dividerGap
-    const plainLeft = margin
+    // Annotated column on the RIGHT side, plain column on the LEFT side
+    const annotatedLeftX = margin + columnWidth + dividerGap
+    const plainLeftX = margin
 
     let y = margin + fontSize
 
@@ -265,10 +286,10 @@ async function generateAndDownloadPDF(pageData: unknown, pageEl: HTMLElement) {
       const line = data.lines[lineIdx]
 
       // Render annotated column (right side)
-      renderLine(pdf, line, annotatedLeft, y, columnWidth, fontSize, true)
+      renderLine(pdf, line, annotatedLeftX, y, columnWidth, fontSize, true)
 
       // Render plain column (left side)
-      renderLine(pdf, line, plainLeft, y, columnWidth, fontSize, false)
+      renderLine(pdf, line, plainLeftX, y, columnWidth, fontSize, false)
 
       y += lineHeight
     }
