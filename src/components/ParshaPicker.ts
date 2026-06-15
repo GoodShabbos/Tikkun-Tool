@@ -9,24 +9,37 @@ import {
   LeiningInstance,
   LeiningInstanceId,
 } from '../calendar-model/model-types.ts'
-import { generateUrl } from '../view-model/navigation/url-parser.ts'
+import { generateUrl, generateSlugUrl } from '../view-model/navigation/url-parser.ts'
 import { isVezosHabracha } from '../view-model/scroll-view-model.ts'
 import { last } from '../calendar-model/utils.ts'
 import { toTitleCase } from '../calendar-model/hebcal-conversions.ts'
+import { computeDisambiguation } from '../calendar-model/slugs.ts'
 
 const { htmlToElement } = utils
 
 const dateFormat = Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
 
-const Parsha = (leining: LeiningInstance) => `
+/**
+ * Creates template functions that use the given disambiguation map
+ * to generate correct slug URLs for dates with duplicate names.
+ */
+const makeTemplates = (
+  disambiguation: Map<LeiningInstance['date'], number>
+) => {
+  const slugUrl = (leining: LeiningInstance) =>
+    generateSlugUrl(leining.runs[0], disambiguation.get(leining.date)) ??
+    generateUrl(leining.runs[0])
+
+  const Parsha = (leining: LeiningInstance) => `
   <li><a
     class="parsha"
-    href="${generateUrl(leining.runs[0])}"
+    href="${slugUrl(leining)}"
   >
     ${renderTitle(leining)}
   </a></li>
   `
-const Book = (book: LeiningInstance[]) => `
+
+  const Book = (book: LeiningInstance[]) => `
   <li class="parsha-book">
     <ol class="parsha-list">
       ${book.map(Parsha).join('')}
@@ -34,21 +47,26 @@ const Book = (book: LeiningInstance[]) => `
   </li>
 `
 
-const ComingUpReading = (obj: LeiningInstance, index: number) => {
-  return `
+  const ComingUpReading = (obj: LeiningInstance, index: number) => {
+    return `
   <li style="display: table-cell; width: calc(100% / 3); padding: 0 0.5em;">
     <div class="stack small" style="display: flex; flex-direction: column; align-items: center;">
       <a
-        href="${index === 0 ? '#/next' : generateUrl(obj.runs[0])}"
+        href="${index === 0 ? '#/next' : slugUrl(obj)}"
         class="coming-up-button"
       >${renderTitle(obj, { forCalendar: true })}</a>
       <time class="coming-up-date">${dateFormat.format(obj.date.date)}</time>
     </div>
   </li>
   `
+  }
+
+  return { Parsha, Book, ComingUpReading }
 }
 
-const ComingUp = (comingUpReadings: LeiningInstance[]) => `
+const ComingUp = (comingUpReadings: LeiningInstance[], disambiguation: Map<LeiningInstance['date'], number>) => {
+  const { ComingUpReading } = makeTemplates(disambiguation)
+  return `
   <section dir="ltr" id="coming-up" class="section mod-alternate mod-padding">
     <div class="stack medium">
       <label class="section-label">Coming up</label>
@@ -59,7 +77,7 @@ const ComingUp = (comingUpReadings: LeiningInstance[]) => `
       </div>
     </div>
   </section>
-`
+` }
 
 const holidayGroupStarts = ['ראש השנה א׳', 'סוכות א׳', 'שבועות א׳', 'פסח א׳']
 const groupHolidays = (leinings: LeiningInstance[]) => {
@@ -76,7 +94,9 @@ const groupHolidays = (leinings: LeiningInstance[]) => {
   return groups
 }
 
-const Browse = (leinings: LeiningInstance[]) => `
+const Browse = (leinings: LeiningInstance[], disambiguation: Map<LeiningInstance['date'], number>) => {
+  const { Parsha, Book } = makeTemplates(disambiguation)
+  return `
   <div class="browse">
     <h2 class="section-heading">פרשת השבוע</h2>
     <ol class="parsha-books mod-emphasize-first-in-group">
@@ -120,7 +140,7 @@ const Browse = (leinings: LeiningInstance[]) => `
       </li>
     </ol>
   </div>
-`
+` }
 
 const top = (n: number) => (_: unknown, i: number) => i < n
 
@@ -152,9 +172,9 @@ function renderTitle(obj: LeiningInstance, opts?: { forCalendar?: boolean }) {
 declare function gtag(type: 'event', eventName: string, payload: unknown): void
 
 export default (generator: LeiningGenerator) => {
-  const leinings = generator
-    .forEntireChumash(new HDate())
-    .flatMap((ld) => ld.leinings)
+  const allDates = generator.forEntireChumash(new HDate())
+  const leinings = allDates.flatMap((ld) => ld.leinings)
+  const disambiguation = computeDisambiguation(allDates)
 
   const searchEmitter = EventEmitter.new<SearchEmitter>()
   const s = Search({
@@ -172,8 +192,8 @@ export default (generator: LeiningGenerator) => {
         <div class="centerize">
           <div id="search" style="display: inline-block;"></div>
         </div>
-        ${ComingUp(comingUpReadings)}
-        ${Browse(leinings)}
+        ${ComingUp(comingUpReadings, disambiguation)}
+        ${Browse(leinings, disambiguation)}
       </div>
     </div>
   `)

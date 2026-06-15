@@ -62,16 +62,17 @@ export class ScrollDisplay {
       // Horizontal mode: scroll to the page containing the target line
       const page = element.closest('.tikkun-page') as HTMLElement
       if (page) {
-        // Use scrollIntoView for RTL-safe horizontal scrolling
-        page.scrollIntoView({ inline: 'center', behavior: 'auto' })
+        // In RTL, use scrollIntoView which handles RTL scroll coordinates correctly.
+        // CSS scroll-behavior: smooth doesn't work in RTL, so use 'instant'.
+        page.scrollIntoView({ inline: 'center', behavior: 'instant' })
       }
     } else {
-      // offsetTop is the <table>.  If we just rendered
-      // the previous page, we must add its top.
+      // Vertical mode: smooth scroll to the target line
       const relativeTop =
         element.offsetTop + (element.offsetParent as HTMLElement).offsetTop
-      this.root.scrollTop =
+      const targetScrollTop =
         relativeTop + element.offsetHeight / 2 - this.root.offsetHeight / 2
+      this.root.scrollTo({ top: targetScrollTop, behavior: 'smooth' })
     }
     // Raise an event so that the title updates.
     this.root.dispatchEvent(new Event('scroll'))

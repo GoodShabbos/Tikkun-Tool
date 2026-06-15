@@ -1,5 +1,5 @@
 import { LeiningInstance } from '../calendar-model/model-types.ts'
-import { generateUrl } from '../view-model/navigation/url-parser.ts'
+import { generateUrl, generateSlugUrl } from '../view-model/navigation/url-parser.ts'
 import utils from './utils.ts'
 
 const { htmlToElement } = utils
@@ -35,7 +35,7 @@ const ParshaResult = ({
   item: LeiningInstance
 }) =>
   htmlToElement(`
-  <a data-target-class="parsha-result" href="${generateUrl(item.runs[0])}">
+  <a data-target-class="parsha-result" href="${generateSlugUrl(item.runs[0]) ?? generateUrl(item.runs[0])}">
     <p class="search-result-tag mod-hebrew" data-target-class="result-hebrew">${
       match.index === 0
         ? decorateString({

@@ -7,6 +7,7 @@
 @import './parsha-picker.css';
 @import './toggle.css';
 @import './toolbar.css';
+@import './print.css';
 
 @font-face {
   font-family: 'ShlomosemiStam';
@@ -132,8 +133,17 @@ ol {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /*https://css-tricks.com/snippets/css/momentum-scrolling-on-ios-overflow-elements/*/
   box-sizing: border-box;
+  /* Hide scrollbar across browsers */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
 
-  --pull-transform: 0s;
+.tikkun-book::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.tikkun-book.mod-pull-releasing {
+  --pull-transform: 0.15s;
   --pull-translation: 0;
 }
 
@@ -143,12 +153,24 @@ ol {
   padding-bottom: 0;
   overflow-y: hidden;
   overflow-x: auto;
-  scroll-behavior: smooth;
   display: flex;
-  flex-direction: row; /* RTL direction handles the visual order */
+  flex-direction: row; /* RTL direction handles visual order */
   align-items: stretch;
   gap: 0;
-  direction: rtl; /* RTL: first item on the right, scroll origin at right */
+  /* Note: direction is inherited as rtl from #js-app.
+     In RTL, scrollLeft is negative when scrolled toward later content.
+     CSS scroll-behavior: smooth doesn't work reliably in RTL,
+     so smooth scrolling is implemented in JS. */
+}
+
+/* Hide scrollbar on Sefer Torah page containers (vertical scroll within each column) */
+.tikkun-book.mod-sefer-torah .tikkun-page::-webkit-scrollbar {
+  display: none;
+}
+
+.tikkun-book.mod-sefer-torah .tikkun-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
 .tikkun-book.mod-pull-releasing {

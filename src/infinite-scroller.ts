@@ -27,18 +27,17 @@ const InfiniteScroller = {
       const isHorizontal = scrollView.classList.contains('mod-sefer-torah')
 
       if (isHorizontal) {
-        // In RTL with flex-direction: row-reverse, scrollLeft can be negative.
-        // Normalize: distance from the right edge (start in RTL).
-        const scrollLeft = scrollView.scrollLeft
+        // In RTL scroll containers:
+        // - scrollLeft is 0 at the rightmost position (start/earlier content)
+        // - scrollLeft is negative when scrolled toward later content (left)
+        // - "hiddenBefore" = content to the right of viewport (earlier pages)
+        // - "hiddenAfter" = content to the left of viewport (later pages)
+        const scrollLeft = scrollView.scrollLeft // negative in RTL when scrolled
         const scrollWidth = scrollView.scrollWidth
         const clientWidth = scrollView.clientWidth
 
-        // "Before" = content to the right of viewport (earlier pages in RTL)
-        // "After" = content to the left of viewport (later pages in RTL)
-        // In RTL, scrollLeft is typically 0 at the rightmost position and
-        // negative as you scroll left (toward later content).
-        // However, some browsers use positive scrollLeft in RTL.
-        // Use a normalized approach:
+        // In RTL, hiddenBefore = |scrollLeft| (or 0 if scrollLeft is 0)
+        // hiddenAfter = scrollWidth - clientWidth - |scrollLeft|
         const hiddenBeforeWidth = Math.abs(scrollLeft)
         const hiddenAfterWidth = Math.max(0,
           scrollWidth - clientWidth - Math.abs(scrollLeft)
@@ -49,12 +48,16 @@ const InfiniteScroller = {
             fetchPreviousContent.fetch().then((fetched) => {
               if (!fetched) return
 
-              const afterWidth = scrollWidth - Math.abs(scrollLeft)
+              // Remember how much content is after the viewport
+              const afterWidth = scrollWidth - Math.abs(scrollView.scrollLeft)
 
               fetchPreviousContent.render(fetched)
 
               // Maintain scroll position after prepending content
-              scrollView.scrollLeft = -(scrollView.scrollWidth - afterWidth)
+              // In RTL, scrollLeft should become more negative by the width of the new content
+              const newScrollWidth = scrollView.scrollWidth
+              const addedWidth = newScrollWidth - scrollWidth
+              scrollView.scrollLeft = -(Math.abs(scrollView.scrollLeft) + addedWidth)
             })
           )
         } else if (hiddenAfterWidth < 0.5 * clientWidth) {
@@ -108,6 +111,14 @@ const InfiniteScroller = {
             setTimeout(checkScroll, 50)
           })
           observer.observe(container, { childList: true })
+          // Periodic check for edge cases where scroll events don't fire
+          // (e.g., already at the edge of scrollable area)
+          const intervalId = setInterval(checkScroll, 2000)
+          // Clean up on page unload
+          window.addEventListener('unload', () => {
+            clearInterval(intervalId)
+            observer.disconnect()
+          })
         }
       },
     }

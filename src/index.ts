@@ -291,13 +291,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyAnnotationState(annotationsToggle.checked)
 
     // In Sefer Torah mode, pre-load enough pages to create horizontal overflow
-    // so the infinite scroller can work. Pages are ~42% wide, so we need
-    // at least 3 pages to overflow the viewport.
+    // so the infinite scroller can work. Pages are fit-content width, so we need
+    // at least 2 pages on each side for partial visibility of neighbors.
     if (mode === 'sefer' && display) {
       const loadSeferPages = async () => {
         const viewModel = display.viewModel
-        // Load pages on both sides until we have enough for overflow
-        for (let i = 0; i < 3; i++) {
+        // Load pages on both sides for neighbor visibility
+        for (let i = 0; i < 2; i++) {
           const prev = await viewModel.fetchPreviousPage()
           if (prev) display.renderPrevious(prev)
           const next = await viewModel.fetchNextPage()
@@ -416,6 +416,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('keydown', whenKey('Escape', () => {
     if (peekingWord) revertPeek()
   }))
+
+  // --- Sefer Torah mode: keyboard navigation and smooth scrolling ---
+  const smoothScrollHorizontal = (target: number) => {
+    // CSS scroll-behavior: smooth doesn't work reliably in RTL.
+    // Implement smooth scrolling manually with requestAnimationFrame.
+    const start = book.scrollLeft
+    const distance = target - start
+    const duration = 400 // ms
+    const startTime = performance.now()
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      book.scrollLeft = start + distance * eased
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      }
+    }
+    requestAnimationFrame(animate)
+  }
+
+  // Arrow key navigation in Sefer Torah mode
+  document.addEventListener('keydown', (e) => {
+    if (!book.classList.contains('mod-sefer-torah')) return
+    if (isShowingParshaPicker()) return
+
+    // Scroll by one page width (the width of a .tikkun-page element)
+    const firstPage = book.querySelector('.tikkun-page') as HTMLElement | null
+    const scrollAmount = firstPage ? firstPage.offsetWidth + 3 : book.clientWidth // +3 for border
+    const currentScrollLeft = book.scrollLeft
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      // In RTL, ArrowLeft scrolls toward later content (more negative scrollLeft)
+      smoothScrollHorizontal(currentScrollLeft - scrollAmount)
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      // In RTL, ArrowRight scrolls toward earlier content (less negative scrollLeft)
+      smoothScrollHorizontal(currentScrollLeft + scrollAmount)
+    }
+  })
 
   document
     .querySelector('[data-target-id="parsha-title"]')
