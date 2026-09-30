@@ -47,19 +47,18 @@ const makeTemplates = (
   </li>
 `
 
-  const ComingUpReading = (obj: LeiningInstance, index: number) => {
-    return `
-  <li style="display: table-cell; width: calc(100% / 3); padding: 0 0.5em;">
-    <div class="stack small" style="display: flex; flex-direction: column; align-items: center;">
-      <a
-        href="${index === 0 ? '#/next' : slugUrl(obj)}"
-        class="coming-up-button"
-      >${renderTitle(obj, { forCalendar: true })}</a>
+  const ComingUpReading = (obj: LeiningInstance, index: number) => `
+  <li>
+    <a
+      href="${index === 0 ? '#/next' : slugUrl(obj)}"
+      class="coming-up-button${index === 0 ? ' mod-next' : ''}"
+    >
+      ${index === 0 ? '<span class="coming-up-tag">Next</span>' : ''}
+      <span class="coming-up-title">${renderTitle(obj, { forCalendar: true })}</span>
       <time class="coming-up-date">${dateFormat.format(obj.date.date)}</time>
-    </div>
+    </a>
   </li>
   `
-  }
 
   return { Parsha, Book, ComingUpReading }
 }
@@ -67,15 +66,11 @@ const makeTemplates = (
 const ComingUp = (comingUpReadings: LeiningInstance[], disambiguation: Map<LeiningInstance['date'], number>) => {
   const { ComingUpReading } = makeTemplates(disambiguation)
   return `
-  <section dir="ltr" id="coming-up" class="section mod-alternate mod-padding">
-    <div class="stack medium">
-      <label class="section-label">Coming up</label>
-      <div style="overflow-x: auto;">
-        <ol id="coming-up-readings-list" class="cluster" style="list-style: none; display: table; margin-left: auto; margin-right: auto; white-space: nowrap;">
-          ${comingUpReadings.map(ComingUpReading).join('')}
-        </ol>
-      </div>
-    </div>
+  <section id="coming-up" class="section coming-up">
+    <h2 class="section-label">Coming up</h2>
+    <ol id="coming-up-readings-list" class="coming-up-list">
+      ${comingUpReadings.map(ComingUpReading).join('')}
+    </ol>
   </section>
 ` }
 

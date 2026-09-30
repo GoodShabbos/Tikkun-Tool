@@ -1,0 +1,468 @@
+/* ---------- "See something wrong?" report modal ----------
+ * Copy-and-paste error reporting: to/subject/message rows plus a mailto
+ * escape hatch. Surfaces follow the site's token system (tokens.css):
+ * paper surface, hairline borders, tekhelet accent reserved for focus and
+ * the mailto link, --tk-radius corners, --tk-ease motion. */
+
+.report-modal-scope {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.report-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(20 23 28 / 45%);
+  backdrop-filter: blur(2px);
+  animation: report-backdrop-in 0.18s var(--tk-ease, ease) both;
+}
+
+@keyframes report-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes report-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+.report-modal {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--paper-color, white);
+  border: 1px solid var(--medium-accent-color, #e2e5ea);
+  border-radius: var(--tk-radius-lg, 14px);
+  box-shadow: var(--tk-shadow-md, 0 12px 32px -12px rgb(20 23 28 / 16%));
+  padding: 22px 22px 18px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--page-ink-color, #222);
+  animation: report-modal-in 0.2s var(--tk-ease, ease) both;
+}
+
+@media (prefers-color-scheme: dark) {
+  .report-modal-backdrop {
+    background: rgb(0 0 0 / 60%);
+  }
+}
+
+.report-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--light-text-color, #777);
+  cursor: pointer;
+  transition: background-color 0.15s var(--tk-ease, ease),
+    color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__close:hover {
+  background: var(--light-accent-color, rgb(0 0 0 / 5%));
+  color: var(--page-ink-color, #222);
+}
+
+.report-modal__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+.report-modal__close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.report-modal__flag {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 10px;
+  fill: none;
+  stroke: var(--tk-accent, #1f4fb4);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Clear the close button so the heading and intro never run beneath it. */
+.report-modal__header {
+  padding-right: 40px;
+}
+
+.report-modal__header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.report-modal__intro {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--light-text-color, #666);
+}
+
+/* ---------- Error-type picker (chumash vs tikkun) ---------- */
+
+.report-modal__types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.report-modal__type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--medium-accent-color, #e2e5ea);
+  border-radius: var(--tk-radius, 10px);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s var(--tk-ease, ease),
+    background-color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__type:hover {
+  background: var(--light-accent-color, rgb(0 0 0 / 3%));
+}
+
+.report-modal__type.mod-selected {
+  border-color: var(--tk-accent, #1f4fb4);
+  background: var(--tk-accent-soft, rgb(31 79 180 / 9%));
+}
+
+.report-modal__type:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent, #1f4fb4);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+.report-modal__type-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--page-ink-color, #222);
+}
+
+/* Radio dot: hollow by default, tekhelet-filled when selected. */
+.report-modal__type-label::before {
+  content: '';
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--light-text-color, #999);
+  border-radius: 50%;
+  transition: border-color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__type.mod-selected .report-modal__type-label::before {
+  border-color: var(--tk-accent, #1f4fb4);
+  background: var(--tk-accent, #1f4fb4);
+  box-shadow: inset 0 0 0 2.5px var(--paper-color, white);
+}
+
+.report-modal__type-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--light-text-color, #777);
+}
+
+.report-modal__section {
+  margin-top: 16px;
+}
+
+.report-modal__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--light-text-color, #777);
+}
+
+.report-modal__row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.report-modal__email {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  padding: 9px 12px;
+  border: 1px solid var(--medium-accent-color, #e2e5ea);
+  border-radius: var(--tk-radius, 10px);
+  background: var(--light-accent-color, rgb(0 0 0 / 3%));
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--page-ink-color, #222);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+
+/* ---------- Error-type picker (chumash vs tikkun) ---------- */
+
+.report-modal__types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.report-modal__type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--medium-accent-color, #e2e5ea);
+  border-radius: var(--tk-radius, 10px);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s var(--tk-ease, ease),
+    background-color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__type:hover {
+  background: var(--light-accent-color, rgb(0 0 0 / 3%));
+}
+
+.report-modal__type.mod-selected {
+  border-color: var(--tk-accent, #1f4fb4);
+  background: var(--tk-accent-soft, rgb(31 79 180 / 9%));
+}
+
+.report-modal__type:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent, #1f4fb4);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+.report-modal__type-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--page-ink-color, #222);
+}
+
+/* Radio dot: hollow by default, tekhelet-filled when selected. */
+.report-modal__type-label::before {
+  content: '';
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--light-text-color, #999);
+  border-radius: 50%;
+  transition: border-color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__type.mod-selected .report-modal__type-label::before {
+  border-color: var(--tk-accent, #1f4fb4);
+  background: var(--tk-accent, #1f4fb4);
+  box-shadow: inset 0 0 0 2.5px var(--paper-color, white);
+}
+
+.report-modal__type-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--light-text-color, #777);
+}
+
+/* ---------- Screenshot request ---------- */
+
+.report-modal__shot {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--tk-radius, 10px);
+  background: var(--light-accent-color, rgb(0 0 0 / 3%));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-color, #444);
+}
+
+.report-modal__shot svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  fill: none;
+  stroke: var(--light-text-color, #777);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.report-modal__body {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  min-height: 170px;
+  padding: 10px 12px;
+  border: 1px solid var(--medium-accent-color, #e2e5ea);
+  border-radius: var(--tk-radius, 10px);
+  background: var(--light-accent-color, rgb(0 0 0 / 3%));
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--page-ink-color, #222);
+  direction: ltr;
+}
+
+.report-modal__body:focus-visible,
+.report-modal__email:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent, #1f4fb4);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+.report-modal__copy {
+  flex: none;
+  align-self: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--medium-accent-color, #ccc);
+  border-radius: var(--tk-radius, 10px);
+  background: var(--paper-color, white);
+  color: var(--text-color, #444);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s var(--tk-ease, ease),
+    color 0.15s var(--tk-ease, ease), border-color 0.15s var(--tk-ease, ease);
+}
+
+.report-modal__copy:hover {
+  border-color: var(--heavy-accent-color, #999);
+  color: var(--page-ink-color, #222);
+}
+
+.report-modal__copy:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent, #1f4fb4);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+.report-modal__copy.mod-copied {
+  border-color: var(--tk-accent, #1f4fb4);
+  color: var(--tk-accent, #1f4fb4);
+}
+
+.report-modal__copy--wide {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.report-modal__footer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--medium-accent-color, #e2e5ea);
+}
+
+.report-modal__mailto {
+  color: var(--tk-accent, #1f4fb4);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.report-modal__mailto:hover {
+  text-decoration: underline;
+}
+
+.report-modal__mailto:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+  border-radius: 4px;
+}
+
+.report-modal__hint {
+  font-size: 12px;
+  color: var(--light-text-color, #777);
+}
+
+/* Lock body scroll while the modal is open (the .tikkun-book scrolls, not
+   the body, but this keeps the welcome screen and small viewports steady). */
+body.report-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .report-modal__types {
+    grid-template-columns: 1fr;
+  }
+
+  .report-modal-scope {
+    padding: 12px;
+  }
+
+  .report-modal {
+    padding: 18px 16px 14px;
+  }
+
+  .report-modal__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-modal__copy {
+    align-self: flex-end;
+  }
+
+  .report-modal__footer {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-modal,
+  .report-modal-backdrop {
+    animation: none;
+  }
+}
+
+@media (hover: none) {
+  .report-modal__hint {
+    display: none;
+  }
+}

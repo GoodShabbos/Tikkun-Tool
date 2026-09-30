@@ -3,12 +3,15 @@ import InfiniteScroller from './infinite-scroller.ts'
 import ParshaPicker from './components/ParshaPicker.ts'
 import utils from './components/utils.ts'
 import { ScrollViewModel } from './view-model/scroll-view-model.ts'
+import { LeiningInstanceId } from './calendar-model/model-types.ts'
+import { toTitleCase, toAshkenaziTitle } from './calendar-model/hebcal-conversions.ts'
 import { LeiningGenerator } from './calendar-model/generator.ts'
 import { ScrollDisplay } from './components/ScrollDisplay.ts'
 import { ViewportTracker } from './viewport-tracker.ts'
 import { TopBarTracker } from './view-model/navigation/top-bar-model.ts'
 import { parseUrl } from './view-model/navigation/url-parser.ts'
-import { setupDownloadButtons } from './components/download-amud.ts'
+import { setupPrintButtons } from './components/download-amud.ts'
+import { setupReportIssue } from './components/report-issue.ts'
 
 declare function gtag(
   name: 'event',
@@ -25,6 +28,7 @@ const generator = new LeiningGenerator({
   israel: false,
 })
 let display: ScrollDisplay
+let openPickerOnRender = false
 
 const app = {
   jumpTo: (target: ScrollViewModel) => {
@@ -35,6 +39,10 @@ const app = {
 
     display.rendered.then(() => {
       hideParshaPicker()
+      if (openPickerOnRender) {
+        openPickerOnRender = false
+        showParshaPicker()
+      }
     })
   },
 }
@@ -52,16 +60,23 @@ const setVisibility = ({
   classList.toggle('mod-animated', !visible)
 }
 
+const setPickerExpanded = (expanded: boolean) =>
+  document
+    .querySelector('[data-target-id="parsha-title"]')
+    ?.setAttribute('aria-expanded', String(expanded))
+
 const showParshaPicker = () => {
   ;[
     { selector: '[data-target-id="repo-link"]', visible: false },
     { selector: '[data-target-id="tikkun-book"]', visible: false },
     { selector: '[data-target-id="toggle-wrapper"]', visible: false },
+    { selector: '[data-target-id="zoom-wrapper"]', visible: false },
   ].forEach(({ selector, visible }) => setVisibility({ selector, visible }))
 
   const jumper = ParshaPicker(generator)
 
   document.querySelector('#js-app').appendChild(jumper.node)
+  setPickerExpanded(true)
 
   gtag('event', 'view', {
     event_category: 'navigation',
@@ -71,15 +86,19 @@ const showParshaPicker = () => {
 }
 
 const hideParshaPicker = () => {
+  setPickerExpanded(false)
   ;[
     { selector: '[data-target-id="repo-link"]', visible: true },
     { selector: '[data-target-id="tikkun-book"]', visible: true },
   ].forEach(({ selector, visible }) => setVisibility({ selector, visible }))
 
-  // Only show the toggle wrapper if in single-column mode
+  // Only show the toggle/zoom wrappers if in single-column mode
   const columnMode = document.querySelector<HTMLSelectElement>('[data-target-id="column-mode"]')?.value
   if (columnMode === 'single') {
     setVisibility({ selector: '[data-target-id="toggle-wrapper"]', visible: true })
+    setVisibility({ selector: '[data-target-id="zoom-wrapper"]', visible: true })
+  } else {
+    setVisibility({ selector: '[data-target-id="zoom-wrapper"]', visible: false })
   }
 
   if (document.querySelector('.parsha-picker'))
@@ -199,11 +218,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     '[data-target-id="tikkun-book"]'
   )!
 
-  setupDownloadButtons(book)
+  setupPrintButtons(book)
+
+  const reportIssueButton = document.querySelector<HTMLButtonElement>(
+    '[data-target-id="report-issue"]'
+  )
+  if (reportIssueButton) setupReportIssue(reportIssueButton)
 
   const viewportTracker = new ViewportTracker(book)
   const topBarModel = new TopBarTracker()
-  const titleEl = document.querySelector('[data-target-id="parsha-title"]')!
+  const titleEl = document.querySelector('[data-target-id="parsha-title-text"]')!
   viewportTracker.on('viewport-updated', (range) => {
     if (!display.viewModel) return
     // TODO: Noop if nothing changed?
@@ -260,9 +284,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const annotationsToggle = document.querySelector<HTMLInputElement>(
     '[data-target-id="annotations-toggle"]'
   )!
+  const zoomWrapper = document.querySelector<HTMLElement>(
+    '[data-target-id="zoom-wrapper"]'
+  )!
+  const zoomToggle = document.querySelector<HTMLButtonElement>(
+    '[data-target-id="zoom-toggle"]'
+  )!
+  const zoomOutToggle = document.querySelector<HTMLButtonElement>(
+    '[data-target-id="zoom-out-toggle"]'
+  )!
 
-  const COLUMN_MODE_KEY = 'tikkun-column-mode'
   const ANNOTATIONS_KEY = 'tikkun-annotations-on'
+  const ZOOM_FIT_KEY = 'tikkun-zoom-fit'
 
   const applyColumnMode = (mode: 'single' | 'double' | 'sefer') => {
     const book = document.querySelector<HTMLElement>('[data-target-id="tikkun-book"]')!
@@ -277,8 +310,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (mode === 'single') {
       toggleWrapper.style.display = ''
       toggleWrapper.classList.remove('u-hidden', 'mod-animated')
+      // The zoom-fit button pairs with the annotations toggle (left side)
+      zoomWrapper.classList.remove('u-hidden')
     } else {
       toggleWrapper.style.display = 'none'
+      zoomWrapper.classList.add('u-hidden')
+      // Zoom only applies to the single-column reading layout
+      zoomStage = 0
+      applyZoomStage(0)
+      localStorage.setItem(ZOOM_FIT_KEY, '0')
     }
 
     // In sefer mode, force annotations off
@@ -316,18 +356,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     book.classList.toggle('mod-annotations-off', !annotationsOn)
   }
 
-  // Initialize from localStorage or defaults
-  const savedColumnMode = (localStorage.getItem(COLUMN_MODE_KEY) as 'single' | 'double' | 'sefer') || 'double'
-  const savedAnnotations = localStorage.getItem(ANNOTATIONS_KEY) !== 'false' // default true
+  // --- Zoom (single column only) ---
+  // Scale the whole amud as a picture (CSS zoom on each page table) so the
+  // layout — including the space between lines — is exactly the zoomed-out
+  // one, uniformly enlarged. Several gentle stages instead of one extreme.
+  const ZOOM_STAGES = [1, 1.35, 1.85, 2.6, Infinity] as const
+  const ZOOM_STAGE_LABELS = ['Off', '135%', '185%', '260%', 'Full width']
+  const zoomScaleForStage = (stage: number) => {
+    if (!isFinite(ZOOM_STAGES[stage])) {
+      // "Full width" — fit the amud across the screen.
+      const table = book.querySelector<HTMLElement>('.tikkun-page table')
+      if (!table) return 1
+      const previous = book.style.getPropertyValue('--zoom-fit-s')
+      book.style.setProperty('--zoom-fit-s', '1')
+      const naturalWidth = table.getBoundingClientRect().width
+      if (previous) {
+        book.style.setProperty('--zoom-fit-s', previous)
+      } else {
+        book.style.removeProperty('--zoom-fit-s')
+      }
+      return naturalWidth > 0 ? book.clientWidth / naturalWidth : 1
+    }
+    return ZOOM_STAGES[stage]
+  }
 
-  columnModeSelect.value = savedColumnMode
-  annotationsToggle.checked = savedAnnotations
+  const applyZoomStage = (stage: number) => {
+    const stageIndex = Math.max(0, Math.min(stage, ZOOM_STAGES.length - 1))
+    if (stageIndex === 0) {
+      book.classList.remove('mod-zoom-fit')
+      zoomToggle.classList.remove('mod-active')
+      book.style.removeProperty('--zoom-fit-s')
+    } else {
+      book.classList.add('mod-zoom-fit')
+      zoomToggle.classList.add('mod-active')
+      book.style.setProperty('--zoom-fit-s', String(zoomScaleForStage(stageIndex)))
+    }
+    zoomToggle.dataset.zoomStage = String(stageIndex)
+    const label = ZOOM_STAGE_LABELS[stageIndex]
+    zoomToggle.querySelector<HTMLElement>('.zoom-stage-badge')!.textContent =
+      stageIndex === 0 ? '' : stageIndex === ZOOM_STAGES.length - 1 ? 'MAX' : label.replace('%', '')
+    zoomToggle.setAttribute('aria-pressed', String(stageIndex > 0))
+    zoomToggle.setAttribute('data-tooltip', `Zoom: ${label} (click to change)`)
+    // The inset zoom-out button is enabled whenever a stage beyond "Off" is
+    // showing; it steps back down one stage at a time.
+    zoomOutToggle.disabled = stageIndex === 0
+  }
 
-  applyColumnMode(savedColumnMode)
+  let zoomStage = 0
+
+  window.addEventListener('resize', () => {
+    if (book.classList.contains('mod-zoom-fit') && zoomStage === ZOOM_STAGES.length - 1) {
+      // "Full width" stage is viewport-relative; recompute it.
+      book.style.setProperty('--zoom-fit-s', String(zoomScaleForStage(zoomStage)))
+    }
+  })
+
+  zoomToggle.addEventListener('click', () => {
+    zoomStage = (zoomStage + 1) % ZOOM_STAGES.length
+    localStorage.setItem(ZOOM_FIT_KEY, String(zoomStage))
+    applyZoomStage(zoomStage)
+  })
+
+  zoomOutToggle.addEventListener('click', () => {
+    if (zoomStage === 0) return
+    zoomStage -= 1
+    localStorage.setItem(ZOOM_FIT_KEY, String(zoomStage))
+    applyZoomStage(zoomStage)
+  })
+
+  // Initialize with defaults (column mode always starts single)
+  const annotationsOn = localStorage.getItem(ANNOTATIONS_KEY) !== 'false' // default true
+  const savedZoomStage = parseInt(localStorage.getItem(ZOOM_FIT_KEY) || '0', 10) || 0
+
+  columnModeSelect.value = 'single'
+  annotationsToggle.checked = annotationsOn
+
+  applyColumnMode('single')
+  if (savedZoomStage > 0) {
+    zoomStage = savedZoomStage
+    applyZoomStage(savedZoomStage)
+  }
 
   columnModeSelect.addEventListener('change', () => {
     const mode = columnModeSelect.value as 'single' | 'double' | 'sefer'
-    localStorage.setItem(COLUMN_MODE_KEY, mode)
     applyColumnMode(mode)
   })
 
@@ -478,16 +589,87 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setAppHeight()
 
+  const appRoot = document.querySelector<HTMLElement>('.app')!
+  const welcomeScreen = document.querySelector<HTMLElement>(
+    '[data-target-id="welcome-screen"]'
+  )!
+  const setWelcomeVisible = (visible: boolean) => {
+    welcomeScreen.hidden = !visible
+    appRoot.classList.toggle('mod-welcome', visible)
+  }
+  const hasRouteHash = () => Boolean(location.hash.replace(/^#/, ''))
+
+  setWelcomeVisible(!hasRouteHash())
+
   window.addEventListener('hashchange', () => {
     const newVM = parseCurrentUrl()
-    if (newVM) app.jumpTo(newVM)
+    if (newVM) {
+      setWelcomeVisible(false)
+      app.jumpTo(newVM)
+      applyColumnMode(columnModeSelect.value as 'single' | 'double' | 'sefer')
+    } else if (!hasRouteHash()) {
+      setWelcomeVisible(true)
+    }
   })
 
-  app.jumpTo(
-    parseCurrentUrl() ??
-      // If the URL is invalid, default to the next leining.
-      ScrollViewModel.forDate(generator, new Date())
-  )
+  const initialView = parseCurrentUrl()
+  if (initialView) {
+    app.jumpTo(initialView)
+    applyColumnMode(columnModeSelect.value as 'single' | 'double' | 'sefer')
+  } else if (hasRouteHash()) {
+    // If the URL is invalid, default to the next leining.
+    app.jumpTo(ScrollViewModel.forDate(generator, new Date()))
+  }
+
+  document.querySelector<HTMLAnchorElement>('.welcome-brand')!.addEventListener('click', (event) => {
+    event.preventDefault()
+    history.pushState(null, '', `${location.pathname}${location.search}`)
+    setWelcomeVisible(true)
+  })
+
+  document.querySelectorAll<HTMLButtonElement>('[data-launch-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.launchMode as 'single' | 'double' | 'sefer'
+      columnModeSelect.value = mode
+      applyColumnMode(mode)
+      setWelcomeVisible(false)
+
+      if (location.hash === '#/next') {
+        app.jumpTo(ScrollViewModel.forDate(generator, new Date()))
+        applyColumnMode(mode)
+      } else {
+        location.hash = '#/next'
+      }
+    })
+  })
+
+  // "Open Tikkun" — launch the tikkun and land with the parsha picker open
+  document
+    .querySelector<HTMLButtonElement>('[data-target-id="open-tikkun-menu"]')
+    ?.addEventListener('click', () => {
+      columnModeSelect.value = 'single'
+      applyColumnMode('single')
+      setWelcomeVisible(false)
+      if (display) {
+        // Book is already rendered — just reveal the picker on top.
+        showParshaPicker()
+      } else {
+        // First navigation is still rendering; open the picker when ready.
+        openPickerOnRender = true
+        if (!location.hash) location.hash = '#/next'
+      }
+    })
+
+  // Label the hero button with the upcoming leining (eg, "Open Parshas Noach").
+  const upcomingLeining = ScrollViewModel.leiningForDate(generator, new Date())
+  const leiningLabel =
+    upcomingLeining.id === LeiningInstanceId.Megillah
+      ? `Megillas ${toTitleCase(upcomingLeining.runs[0].scroll)}`
+      : toAshkenaziTitle(
+          upcomingLeining.date.title.en.replace(/^Parshat /, 'Parshas ')
+        )
+  const primaryButton = document.querySelector<HTMLButtonElement>('.welcome-primary')
+  if (primaryButton) primaryButton.textContent = `Open ${leiningLabel}`
 })
 function parseCurrentUrl(): ScrollViewModel | null {
   return parseUrl(generator, location.hash.replace(/^#/, ''))

@@ -1,0 +1,193 @@
+/* ---------- Zoom-fit floating button (single column mode) ----------
+ * Mirrors the annotations toggle (toggle.css): a shadowed-circle FAB,
+ * but anchored bottom-LEFT (the annotations toggle owns the right).
+ * Shown only in single-column mode; toggles a class on .tikkun-book that
+ * scales the reading column to fill the screen width.
+ */
+
+.zoom-wrapper {
+  position: fixed;
+  bottom: 1.5em;
+  left: 1.5em;
+  z-index: 90;
+}
+
+/* Hidden by default; index.ts reveals it exactly when the annotations
+   toggle is visible (single-column mode). */
+.zoom-wrapper.u-hidden {
+  display: none;
+}
+
+.zoom-toggle {
+  position: relative;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+/* Stage badge: a small pill at the circle's edge showing the zoom level
+   (135% / 185% / 260% / MAX). Empty and invisible at stage 0. */
+.zoom-stage-badge {
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  min-width: 1.7em;
+  padding: 0.18em 0.32em;
+  border-radius: 0.8em;
+  background: var(--tk-accent, #1f4fb4);
+  color: white;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 0.55em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s var(--tk-ease, ease),
+    transform 0.15s var(--tk-ease, ease);
+}
+
+.zoom-toggle.mod-active .zoom-stage-badge {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.zoom-toggle .shadowed-circle {
+  /* Same 4em circle as toggle.css, but holds a stroke icon instead of text */
+  color: white;
+}
+
+.zoom-toggle svg {
+  width: 1.6em;
+  height: 1.6em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Active (zoomed) state: tekhelet accent circle, matching the site accent */
+.zoom-toggle.mod-active .shadowed-circle {
+  background: var(--tk-accent, #1f4fb4);
+  color: white;
+}
+
+.zoom-toggle:focus-visible {
+  outline: none;
+}
+
+.zoom-toggle:focus-visible .shadowed-circle {
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+/* ---------- Zoom-out inset button ----------
+ * A small companion circle inlaid on the main zoom button's edge (the
+ * stage badge owns the top-left, so this anchors bottom-right), revealed
+ * only while a zoom stage is active; steps the zoom back down one stage.
+ * Mirrors the main button's dark-mode treatment for a matched pair. */
+.zoom-out-toggle {
+  position: absolute;
+  inset-inline-end: -0.55em;
+  bottom: -0.55em;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--_zo-bg, black);
+  color: var(--_zo-ink, white);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+  transition: opacity 0.15s var(--tk-ease, ease),
+    transform 0.15s var(--tk-ease, ease),
+    background-color 0.15s var(--tk-ease, ease);
+}
+
+.zoom-out-toggle svg {
+  width: 1.1em;
+  height: 1.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Show only while the main zoom button is in an active (zoomed) stage */
+.zoom-wrapper:not(:has(.zoom-toggle.mod-active)) .zoom-out-toggle,
+.zoom-out-toggle[disabled] {
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+
+.zoom-wrapper:has(.zoom-toggle.mod-active) .zoom-out-toggle:not([disabled]) {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.zoom-out-toggle:hover {
+  transform: scale(1.12);
+}
+
+.zoom-out-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tk-accent-ring, rgb(31 79 180 / 26%));
+}
+
+/* ---------- Zoomed (fit-width) reading layout ----------
+ * Uses CSS `zoom` on each page's table rather than bumping font-size:
+ * zoom multiplies every length inside the table uniformly (glyphs,
+ * leading, word gaps, indicators, border-spacing), so the layout is
+ * pixel-for-pixel a scaled copy of the zoomed-out amud — the space
+ * between lines keeps the exact same proportion to the text.
+ * The scale factor is computed in index.ts (book width / natural table
+ * width) and exposed as a custom property on the book. */
+
+.tikkun-book.mod-zoom-fit .tikkun-page table {
+  zoom: var(--zoom-fit-s, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom-toggle .shadowed-circle,
+  .zoom-out-toggle {
+    transition: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .zoom-toggle .shadowed-circle {
+    /* toggle.css flips to a white circle with black glyph in dark mode;
+       keep this button identical to stay a matched pair. */
+    background: white;
+    color: black;
+  }
+
+  .zoom-out-toggle {
+    --_zo-bg: white;
+    --_zo-ink: black;
+  }
+
+  .zoom-toggle.mod-active .shadowed-circle {
+    background: var(--tk-accent, #7ea2f4);
+    color: #0d1424;
+  }
+
+  .zoom-wrapper:has(.zoom-toggle.mod-active) .zoom-out-toggle {
+    /* In dark mode the active circle goes tekhelet; give the inset a deep
+       ink circle so it reads as a distinct, quiet "step down" affordance. */
+    --_zo-bg: #0d1424;
+    --_zo-ink: #cdd9f1;
+  }
+}

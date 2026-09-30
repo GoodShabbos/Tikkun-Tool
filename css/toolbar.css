@@ -1,89 +1,300 @@
-.toolbar-item {
-  position: relative;
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
+/* ---------- Header bar ---------- */
 
 .toolbar-content {
-  display: flex;
-  padding: 0 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 16px;
 }
 
 .toolbar-wrapper {
-  align-items: center;
   display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.toolbar-wrapper.mod-left,
-.toolbar-wrapper.mod-right {
-  flex: 1;
+/* Quiet separator between control clusters, matching the toolbar's hairline
+   language (the same ink as the header's bottom border, at header height). */
+.toolbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--heavy-accent-color);
 }
 
 .toolbar-wrapper.mod-right {
   justify-content: flex-end;
 }
 
+.toolbar-wrapper.mod-center {
+  justify-content: center;
+}
+
+.toolbar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+/* ---------- Parsha button (opens the picker) ---------- */
+
 .parsha-title {
-  background-color: var(--light-accent-color);
-  padding: 0.5em 3em;
-  border: none;
-  border-radius: var(--button-border-radius);
-  color: var(--text-color);
-  direction: rtl;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(100%, 460px);
+  height: 38px;
+  padding: 0 8px 0 14px;
+  border: 1px solid var(--medium-accent-color);
+  border-radius: var(--tk-radius);
+  background: var(--tk-surface);
+  box-shadow: var(--tk-shadow-sm);
+  color: var(--page-ink-color);
+  font: inherit;
+  cursor: pointer;
+  direction: ltr;
+  transition: border-color 0.15s var(--tk-ease),
+    box-shadow 0.15s var(--tk-ease), transform 0.15s var(--tk-ease);
 }
 
 .parsha-title:hover {
-  background-color: var(--medium-accent-color);
+  border-color: var(--heavy-accent-color);
 }
 
 .parsha-title:active {
-  background-color: var(--heavy-accent-color);
+  transform: scale(0.985);
 }
+
+.parsha-title:focus-visible,
+.parsha-title[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring);
+}
+
+.parsha-title-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--light-text-color);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  transition: stroke 0.15s var(--tk-ease);
+}
+
+.parsha-title:hover .parsha-title-icon {
+  stroke: var(--text-color);
+}
+
+.parsha-title-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+
+.parsha-title-kbd {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--medium-accent-color);
+  border-radius: 6px;
+  color: var(--light-text-color);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ---------- Report issue (see something wrong?) ---------- */
+
+.report-issue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius);
+  background-color: transparent;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s var(--tk-ease),
+    color 0.15s var(--tk-ease), transform 0.15s var(--tk-ease);
+}
+
+.report-issue-btn:hover {
+  background-color: var(--light-accent-color);
+  color: var(--page-ink-color);
+}
+
+.report-issue-btn:active {
+  transform: scale(0.985);
+}
+
+.report-issue-btn:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring);
+}
+
+.report-issue-btn svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--light-text-color);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.15s var(--tk-ease);
+}
+
+.report-issue-btn:hover svg {
+  stroke: var(--text-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-issue-btn {
+    transition: none;
+  }
+}
+
+/* ---------- Column layout select ---------- */
 
 .column-mode-select {
   appearance: none;
   -webkit-appearance: none;
-  background-color: var(--light-accent-color);
-  color: var(--text-color);
-  border: 1px solid var(--medium-accent-color);
-  border-radius: var(--button-border-radius);
-  padding: 0.35em 1.8em 0.35em 0.7em;
-  font-size: 0.8em;
-  font-family: -apple-system, sans-serif;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23777'/%3E%3C/svg%3E");
+  height: 34px;
+  padding: 0 30px 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius);
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23777' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.6em center;
-  background-size: 10px;
+  background-position: right 10px center;
+  background-size: 12px;
+  color: var(--text-color);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
   direction: ltr;
+  transition: background-color 0.15s var(--tk-ease),
+    border-color 0.15s var(--tk-ease);
 }
 
 .column-mode-select:hover {
-  background-color: var(--medium-accent-color);
+  background-color: var(--light-accent-color);
 }
 
-.column-mode-select:active {
-  background-color: var(--heavy-accent-color);
+.column-mode-select:focus-visible {
+  outline: none;
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px var(--tk-accent-ring);
 }
 
-.column-mode-select:focus {
-  outline: 2px solid var(--medium-accent-color);
-  outline-offset: 1px;
+/* ---------- GitHub link ---------- */
+
+.toolbar-icon-link {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--tk-radius);
+  transition: background-color 0.15s var(--tk-ease);
+}
+
+.toolbar-icon-link:hover {
+  background-color: var(--light-accent-color);
+}
+
+.toolbar-icon-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tk-accent-ring);
+}
+
+.toolbar-github {
+  display: block;
+  width: 20px;
+  height: 20px;
+  opacity: 0.65;
+  transition: opacity 0.15s var(--tk-ease);
+}
+
+.toolbar-icon-link:hover .toolbar-github {
+  opacity: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   .column-mode-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23999' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  }
+
+  .toolbar-github {
+    filter: invert();
   }
 }
 
-.toolbar-github {
-  vertical-align: middle; /* HACK: https://stackoverflow.com/a/27999850/2374361 */
+/* ---------- Small screens & touch ---------- */
+
+@media (max-width: 640px) {
+  .toolbar-content {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .column-mode-select {
+    padding-left: 8px;
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  .toolbar-github {
-    filter: invert();
+@media (max-width: 900px) {
+  /* Icon-sized hint is dropped; keep a short label so the purpose stays clear. */
+  .report-issue-btn span {
+    display: none;
+  }
+
+  .report-issue-btn {
+    width: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar-wrapper.mod-right {
+    display: none;
+  }
+
+  .toolbar-content {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+@media (hover: none) {
+  .parsha-title-kbd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-content * {
+    transition: none !important;
   }
 }

@@ -1,12 +1,16 @@
 @charset "UTF-8";
 @import '../node_modules/normalize.css/normalize.css';
 
+@import './tokens.css';
 @import './app-layout.css';
+@import './welcome.css';
 @import './tooltip.css';
 @import './page.css';
 @import './parsha-picker.css';
 @import './toggle.css';
+@import './zoom.css';
 @import './toolbar.css';
+@import './report-modal.css';
 @import './print.css';
 
 @font-face {
@@ -94,7 +98,7 @@ ol {
      the header's height should fit to content, and the body's
      height should fill the rest of the container (in this case
      the screen), regardless of overflow */
-  --header-height: 45px;
+  --header-height: 56px;
 
   --paper-color: hsl(0, 0%, 98%);
   --page-ink-color: hsla(0, 0%, 0%, 0.8);

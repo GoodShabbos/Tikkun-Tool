@@ -12,6 +12,8 @@ The source text is pulled from the [Sefaria API](https://github.com/Sefaria/Sefa
 
 Fork, clone, `npm install`.
 
+> **Note:** See [DEVELOPMENT.md](DEVELOPMENT.md) for the branching workflow — commit to `dev`; only merge to `production` once `dev` is stable.
+
 Start the development process by running `npm run dev`. This will watch for file changes as you edit and start a local server on port 8000 where you can play with and test your changes. Just visit http://localhost:8000 in your browser.
 
 Run unit tests with `npm test`, and watch for changes to automatically run the tests with `npm run test:watch`.

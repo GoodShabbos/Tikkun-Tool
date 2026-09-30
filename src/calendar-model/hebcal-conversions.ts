@@ -73,6 +73,27 @@ export function toTitleCase(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/songs/, 'Songs')
 }
 
+/** Maps @hebcal's English names to the Ashkenazi/Orthodox spellings used in a tikkun context. */
+const ashkenaziSpellings: ReadonlyArray<readonly [RegExp, string]> = [
+  [/Sukkot/g, 'Sukkos'],
+  [/Shavuot/g, 'Shavuos'],
+  [/Shabbat/g, 'Shabbos'],
+  [/Simchat Torah/g, 'Simchas Torah'],
+  [/Atzeret/g, 'Atzeres'],
+  [/Ta'anit/g, 'Taanis'],
+  [/Chukat/g, 'Chukas'],
+  [/Ki Tisa/g, 'Ki Sisa'],
+  [/Matot/g, 'Matos'],
+]
+
+/** Converts a @hebcal English name (eg, "Sukkot Chol ha-Moed Day 2") to an Ashkenazi spelling (eg, "Sukkos Chol ha-Moed Day 2"). */
+export function toAshkenaziTitle(title: string): string {
+  return ashkenaziSpellings.reduce(
+    (t, [pattern, replacement]) => t.replace(pattern, replacement),
+    title
+  )
+}
+
 /** Converts a hebcal index string (from `AliyahMap`) to our `index` property value. */
 export function toAliyahIndex(key: string): LeiningAliyah['index'] {
   if (key === 'M') return 'Maftir'

@@ -22,8 +22,9 @@ const Search = ({
   const self = html(`
     <div class="search">
       <div class="search-bar">
-        <span class="search-icon">⚲</span>
-        <input class="search-input" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input class="search-input" placeholder="Search parsha or holiday" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <kbd class="search-kbd" aria-hidden="true">Esc</kbd>
       </div>
       <div class="search-results u-hidden">
       </div>

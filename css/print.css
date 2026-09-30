@@ -9,45 +9,38 @@
  * These styles are scoped to @media print so they don't affect the
  * on-screen layout. The .printing-amud class on <body> provides an
  * additional hook for print-specific adjustments.
- *
- * Layout goals:
- * - One amud per physical page (no page breaks within an amud)
- * - Columns as large as possible while fitting on one page
- * - Both annotated and plain columns visible
- * - Correct Hebrew text rendering with all combining marks
  */
 
 @media print {
   /* === Page Setup === */
   @page {
     size: letter;
-    margin: 0.4in 0.5in;
+    margin: 0.5in;
   }
 
   /* === Hide non-content elements === */
   .app-toolbar,
   .download-amud-btn,
+  .print-options-menu,
+  .report-modal-scope,
   .annotations-toggle,
   .parsha-picker,
   [data-target-id="toggle-wrapper"],
+  [data-target-id="zoom-wrapper"],
   [data-target-id="parsha-picker"],
-  [data-target-id="repo-link"],
   #debug {
     display: none !important;
   }
 
   /* === Reset body and app layout for print === */
-  html, body {
+  body {
     background: white !important;
     height: auto !important;
     overflow: visible !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 
   .app {
     height: auto !important;
-    overflow: visible !important;
   }
 
   .app-body {
@@ -55,35 +48,16 @@
     overflow: visible !important;
   }
 
-  /* === Tikkun book: reset scroll container for print === */
-  .printing-amud .tikkun-book {
-    height: auto !important;
-    overflow: visible !important;
-    width: 100% !important;
-  }
-
   /* === Show only the page being printed === */
   .printing-amud .tikkun-page {
     display: flex !important;
-    justify-content: center !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
-    /* Remove inter-page spacing */
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    /* The tikkun-page font-size is set dynamically by JS (printAmud)
-       via binary search to find the largest size that fits one amud
-       on one page. Do NOT set font-size here with !important, as
-       CSS !important overrides inline styles set by JS. */
-  }
-
-  /* Remove inter-page borders and spacing */
-  .printing-amud .tikkun-page:not(:first-child),
-  .printing-amud .tikkun-page:not(:last-child) {
-    padding: 0 !important;
-    border: none !important;
+    font-size: 14px !important;
   }
 
   /* Hide all other tikkun pages (handled by JS, but just in case) */
@@ -91,66 +65,41 @@
     display: none !important;
   }
 
-  /* === Table layout for print === */
-  .printing-amud .tikkun-page table {
-    width: 100% !important;
-    transform: none !important;
-    border-collapse: collapse;
+  /* === Tikkun book layout for print === */
+  .printing-amud .tikkun-book {
+    height: auto !important;
+    overflow: visible !important;
   }
 
   /* === Two-column layout for print === */
   .printing-amud .tikkun-columns {
-    display: flex !important;
     gap: 0.5em;
     width: 100%;
   }
 
-  /* Make columns as large as possible — use a fixed font size
-     that fills the page width. The clamp() on screen uses viewport
-     units which don't apply in print, so we override with a fixed size. */
   .printing-amud .tikkun-column {
-    flex: 1 !important;
-    min-width: 0 !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    /* Use a larger font size for print to maximize readability.
-       The on-screen clamp(0.45em, 1.8vw, 1em) scales with viewport,
-       but in print we want a consistent, large size. */
-    font-size: 1em !important;
+    font-size: 14px !important;
+    flex: 1;
+    min-width: 0;
   }
 
   .printing-amud .tikkun-column.mod-annotated {
-    border-left: 1px solid #999;
+    border-left: 1px solid #ccc;
     padding-left: 0.5em;
   }
 
   .printing-amud .tikkun-column.mod-plain {
-    border-right: 1px solid #999;
+    border-right: 1px solid #ccc;
     padding-right: 0.5em;
   }
 
   /* === Line layout for print === */
   .printing-amud .line {
     page-break-inside: avoid;
-    line-height: 1.2;
+    line-height: 1.15;
   }
 
-  /* === Column (fragment group) layout for print === */
-  .printing-amud .column {
-    min-width: 0 !important;
-  }
-
-  .printing-amud .column:nth-child(2) {
-    margin-right: 2em !important;
-    width: auto !important;
-  }
-
-  /* === Fragment layout for print === */
-  .printing-amud .fragment {
-    width: 100%;
-  }
-
-  /* === Location indicators: hide in print === */
+  /* === Location indicators for print === */
   .printing-amud .location-indicator {
     display: none !important;
   }
@@ -174,7 +123,7 @@
     border-color: #ddd !important;
   }
 
-  /* === Sefer Torah mode: show both columns for print === */
+  /* === Sefer Torah mode: reset for print === */
   .printing-amud .tikkun-book.mod-sefer-torah .tikkun-page {
     width: 100% !important;
     height: auto !important;
@@ -199,17 +148,32 @@
 
   .printing-amud .tikkun-book.mod-single-column .tikkun-column {
     display: flex !important;
-    font-size: 1em !important;
+    font-size: 14px !important;
   }
 
   .printing-amud .tikkun-book.mod-single-column .tikkun-column.mod-annotated {
-    border-left: 1px solid #999;
+    border-left: 1px solid #ccc;
     padding-left: 0.5em;
   }
 
   .printing-amud .tikkun-book.mod-single-column .tikkun-column.mod-plain {
-    border-right: 1px solid #999;
+    border-right: 1px solid #ccc;
     padding-right: 0.5em;
+  }
+
+  /* === Column layout for print === */
+  .printing-amud .column {
+    min-width: 0 !important;
+  }
+
+  .printing-amud .column:nth-child(2) {
+    margin-right: 2em !important;
+    width: auto !important;
+  }
+
+  /* === Remove pull-translation effect for print === */
+  .printing-amud .tikkun-page table {
+    transform: none !important;
   }
 
   /* === Ensure font is available for print === */

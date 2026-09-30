@@ -1,0 +1,24 @@
+/* Shared design tokens for the header and the reading picker.
+   Neutral surfaces come from master.css; tekhelet blue (matching the
+   welcome screen) is reserved for focus, selection and the "next" cue. */
+:root {
+  --tk-accent: #1f4fb4;
+  --tk-accent-soft: color-mix(in srgb, var(--tk-accent) 9%, transparent);
+  --tk-accent-ring: color-mix(in srgb, var(--tk-accent) 26%, transparent);
+  --tk-surface: #ffffff;
+  --tk-radius: 10px;
+  --tk-radius-lg: 14px;
+  --tk-shadow-sm: 0 1px 2px rgb(20 23 28 / 5%);
+  --tk-shadow-md: 0 1px 2px rgb(20 23 28 / 5%),
+    0 12px 32px -12px rgb(20 23 28 / 16%);
+  --tk-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tk-accent: #7ea2f4;
+    --tk-surface: #2a2a2a;
+    --tk-shadow-sm: none;
+    --tk-shadow-md: 0 12px 32px -12px rgb(0 0 0 / 55%);
+  }
+}

@@ -5,11 +5,12 @@
 }
 
 .app-toolbar {
-  border-bottom: 1px solid transparent;
-  flex-shrink: 0;
-  box-shadow: 0 0 8px -4px black;
-  padding: 5px 0;
+  position: relative;
   z-index: 100;
+  flex-shrink: 0;
+  height: var(--header-height);
+  border-bottom: 1px solid var(--medium-accent-color);
+  background-color: var(--paper-color);
 }
 
 .app-body {

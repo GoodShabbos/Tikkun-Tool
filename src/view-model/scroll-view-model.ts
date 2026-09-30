@@ -3,6 +3,7 @@ import type { Ref, RefWithScroll } from '../ref.ts'
 import { LeiningGenerator } from '../calendar-model/generator.ts'
 import type {
   LeiningAliyah,
+  LeiningInstance,
   LeiningRun,
 } from '../calendar-model/model-types.ts'
 import {
@@ -138,15 +139,26 @@ export abstract class ScrollViewModel {
     return new HolidayViewModel(generator, run)
   }
 
-  /** Creates the appropriate `ScrollViewModel` subclass for the first leining on or after a date. */
-  static forDate(generator: LeiningGenerator, date: Date) {
-    // Collect all main leinings in the year containing the date.
+  /** Finds the first leining on or after a date (used for "Open פרשת ..." UI). */
+  static leiningForDate(
+    generator: LeiningGenerator,
+    date: Date
+  ): LeiningInstance {
     const allDates = generator.aroundDate(date)
 
     // Strip the time component so we can find today's leining.
-    date = fromISODateString(toISODateString(date))
-    const targetDate = allDates.find((d) => d.date >= date) ?? last(allDates)
-    return ScrollViewModel.forId(generator, targetDate.leinings[0].runs[0].id)!
+    const stripped = fromISODateString(toISODateString(date))
+    const targetDate =
+      allDates.find((d) => d.date >= stripped) ?? last(allDates)
+    return targetDate.leinings[0]
+  }
+
+  /** Creates the appropriate `ScrollViewModel` subclass for the first leining on or after a date. */
+  static forDate(generator: LeiningGenerator, date: Date) {
+    return ScrollViewModel.forId(
+      generator,
+      ScrollViewModel.leiningForDate(generator, date).runs[0].id
+    )!
   }
 
   /** Creates the appropriate `ScrollViewModel` subclass for the first leining containing a פסוק. */
