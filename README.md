@@ -1,8 +1,14 @@
-# tikkun.io
+# Tikkun Tool
 
-> The online tikkun you always wanted, but never had.
+> The most advanced online tikkun - Remix of tikkun.io
 
-The mission is to **make better Torah readers** by providing the tools to maximize the reader's efficiency and preparedness. Your good, old-fashioned tikkunim are great, but in the end, they're static papers. With the dynamic nature of computer programs, we can make an even better tikkun.
+# *Features:*
+
+## Click to show vowels/trop:
+<img width="1658" height="120" alt="image" src="https://github.com/user-attachments/assets/1320cbdc-3750-4375-8f85-2cec29905d14" />
+
+Clicking on any word shows the vowels and trop, useful so you dont have to show the entire coloum in vowels.
+
 
 The source text is pulled from the [Sefaria API](https://github.com/Sefaria/Sefaria-Project/wiki/API-Documentation), with some minor overrides as issues are found (such as פתוחה/סתומה discrepancies).
 
